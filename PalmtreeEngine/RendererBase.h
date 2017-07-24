@@ -9,7 +9,7 @@ public:
 	virtual void DrawSprite() = 0;
 	virtual void SetProjectionMatrix() = 0;
 	virtual void SetViewMatrix() = 0;
-	virtual void GetProjectionMatrix();
-	virtual void GetViewMatrix();
+	virtual void GetProjectionMatrix()=0;
+	virtual void GetViewMatrix()=0;
 };
 

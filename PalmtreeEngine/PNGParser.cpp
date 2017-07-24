@@ -177,7 +177,7 @@ void PNGParser::ReadColorPalette(uint8_t* data,uint32_t dataLength, PNGChunk pal
 	bool isLittleEndian = EdianessUtility::IsLittleEndian();
     uint32_t bytesPerScanline = (header.Width)*header.BitDepth/8 + 1;
 
-    for (int i = 0; i < dataLength; i++)
+    for (size_t i = 0; i < dataLength; i++)
     {
         //Skip filter bytes
         if(i%bytesPerScanline==0)
@@ -202,7 +202,7 @@ void PNGParser::ReadColorDataRGB(uint8_t* data, uint32_t dataLength, IHDRHeader 
     uint32_t currentPixel = 0;
     float sampleMax = (float)(2<<(header.BitDepth-1))-1;
 	//Loop over every color entry
-	for (int i = 0; i < dataLength; i+=bpp)
+	for (size_t i = 0; i < dataLength; i+=bpp)
 	{
 		//Skip the first byte of each scanline as that is filter byte
 		if (i % bytesPerScanline == 0)
@@ -355,7 +355,7 @@ void PNGParser::ReversePaethFilter(uint8_t * data, uint32_t bytePos, uint32_t by
 
 	uint32_t topIndex = bytePos - bytesPerScanLine;
 	int32_t top;
-	if (top <= 0)
+	if (topIndex <= 0)
 	{
 		top = 0;
 	}
@@ -380,9 +380,9 @@ void PNGParser::ReversePaethFilter(uint8_t * data, uint32_t bytePos, uint32_t by
 uint32_t PNGParser::CalculatePeath(int32_t left, int32_t top, int32_t topLeft)
 {
 	int32_t p = left + top - topLeft;
-	int32_t a = std::abs(p - a);
-	int32_t b = std::abs(p - b);
-	int32_t c = std::abs(p - c);
+	int32_t a = std::abs(p - left);
+	int32_t b = std::abs(p - top);
+	int32_t c = std::abs(p - topLeft);
 
 	if (a <= b && a <= c)
 	{
