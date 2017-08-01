@@ -1,0 +1,2 @@
+﻿  minizip.c
+..\..\minizip\minizip.c(44): fatal error C1083: Cannot open include file: 'stdio.h': No such file or directory

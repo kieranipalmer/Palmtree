@@ -41,10 +41,11 @@ private:
 	static PNGChunk ReadChunk(const uint8_t* dataStart);
 	static void ReadColorPalette(uint8_t* data,uint32_t dataLength,PNGChunk paletteChunk, IHDRHeader header, Texture* texture);
 	static void ReadColorDataRGB(uint8_t* data,uint32_t dataLength, IHDRHeader header, Texture* texture, bool hasAlpha);
+	static void ReadGreyData(uint8_t* data, uint32_t dataLength, IHDRHeader header, Texture* texture, bool hasAlpha);
 	static uint32_t ReadData(const uint8_t* data, uint8_t bitDepth, bool isLittleEndian);
     static uint32_t GetCompressedPNGSize(const uint8_t* dataStart);
 	static size_t GetPNGBufferSize(IHDRHeader header);
-
+	static uint8_t GetBytesPerPixel(IHDRHeader header);
     static void RemoveFiltering(uint8_t* data,uint32_t dataLength,uint8_t bytesPerPixel,IHDRHeader header);
     static void ReverseUpFilter(uint8_t* data, uint32_t bytePos, uint32_t bytesPerPixel,uint32_t bytesPerScanline);
     static void ReverseSubFilter(uint8_t* data, uint32_t bytePos, uint32_t bytesPerPixel,uint32_t bytesPerScanline);

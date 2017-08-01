@@ -48,10 +48,12 @@ Texture * PNGParser::ParsePNG(const uint8_t * rawData) {
     uint32_t compressedDataOffset = 0;
 
 	//Create buffer for storing decompressed png data
+	
 	uint8_t* pngData = (uint8_t*)std::malloc(GetPNGBufferSize(ihdrHeader));
     std::memset(pngData,0,GetPNGBufferSize(ihdrHeader));
     Texture *retVal = new Texture(ihdrHeader.Width, ihdrHeader.Height);
     PNGChunk paletteChunk;
+	paletteChunk.Length = 0;
 
     while (!IsChunkTypeOf(currentChunk, "IEND")) {
 
@@ -81,31 +83,13 @@ Texture * PNGParser::ParsePNG(const uint8_t * rawData) {
         stream.next_out = outputBuffer;
         ret = inflate(&stream, Z_NO_FLUSH);
         have = ZLIB_BUFFER_SIZE - stream.avail_out;
-        std::memcpy(pngData+bytesRead,outputBuffer,have);
+        std::memcpy((pngData+bytesRead),outputBuffer,have);
         bytesRead += have;
     } while (ret != Z_STREAM_END);
     inflateEnd(&stream);
 
     //Defilter data
-    uint8_t bpp = 0;
-    switch(ihdrHeader.ColorType)
-    {
-        case 0:
-            bpp = ihdrHeader.BitDepth/8;
-            break;
-        case 2:
-            bpp = ihdrHeader.BitDepth/8*3;
-            break;
-        case 3:
-            bpp = ihdrHeader.BitDepth/8;
-            break;
-        case 4:
-            bpp = ihdrHeader.BitDepth/8*2;
-            break;
-        case 6:
-            bpp = ihdrHeader.BitDepth/8*4;
-            break;
-    }
+	uint8_t bpp = GetBytesPerPixel(ihdrHeader);
     RemoveFiltering(pngData,bytesRead,bpp,ihdrHeader);
 
     //Parse texture data
@@ -113,6 +97,7 @@ Texture * PNGParser::ParsePNG(const uint8_t * rawData) {
     {
         //Grey
         case 0:
+			ReadGreyData(pngData, bytesRead, ihdrHeader, retVal, false);
             break;
         //RGB
         case 2:
@@ -124,7 +109,7 @@ Texture * PNGParser::ParsePNG(const uint8_t * rawData) {
             break;
         //Greyscale with Alpha
         case 4:
-
+			ReadGreyData(pngData, bytesRead, ihdrHeader, retVal, true);
             break;
         //RGBA
         case 6:
@@ -133,6 +118,7 @@ Texture * PNGParser::ParsePNG(const uint8_t * rawData) {
 
     }
 
+	
     std::free(compressedData);
     std::free(pngData);
 	return retVal;
@@ -195,7 +181,7 @@ void PNGParser::ReadColorDataRGB(uint8_t* data, uint32_t dataLength, IHDRHeader 
 	bool isLittleEndian = EdianessUtility::IsLittleEndian();
 	int nBytesPerSample = header.BitDepth / 8;
     //Bytes per pixel, if we have alpha 4 samples otherwise 3
-    uint8_t bpp = nBytesPerSample * hasAlpha?4:3;
+    uint8_t bpp = nBytesPerSample * (hasAlpha?4:3);
 
     //+1 for filter byte
     uint32_t bytesPerScanline = (header.Width)*bpp + 1;
@@ -217,6 +203,35 @@ void PNGParser::ReadColorDataRGB(uint8_t* data, uint32_t dataLength, IHDRHeader 
         texture->_pixelData[currentPixel] = newColor;
         currentPixel++;
 	}
+}
+
+void PNGParser::ReadGreyData(uint8_t * data, uint32_t dataLength, IHDRHeader header, Texture * texture, bool hasAlpha)
+{
+	bool isLittleEndian = EdianessUtility::IsLittleEndian();
+	int nBytesPerSample = header.BitDepth / 8;
+	//Bytes per pixel, if we have alpha 2 samples otherwise 1
+	uint8_t bpp = nBytesPerSample * (hasAlpha ? 2 : 1);
+	//+1 for filter byte
+	uint32_t bytesPerScanline = (header.Width)*bpp + 1;
+	uint32_t currentPixel = 0;
+	float sampleMax = (float)(2 << (header.BitDepth - 1)) - 1;
+
+	//Loop over every color entry
+	for (size_t i = 0; i < dataLength; i += bpp)
+	{
+		//Skip the first byte of each scanline as that is filter byte
+		if (i % bytesPerScanline == 0)
+		{
+			i++;
+		}
+
+		float curSample = ReadData(data + i, header.BitDepth, isLittleEndian) / sampleMax;
+
+		Color newColor(curSample, curSample, curSample, hasAlpha ? ReadData(data + i + 1, header.BitDepth, isLittleEndian) / sampleMax:1.0);
+		texture->_pixelData[currentPixel] = newColor;
+		currentPixel++;
+	}
+
 }
 
 uint32_t PNGParser::ReadData(const uint8_t * data, uint8_t bitDepth, bool isLittleEndian)
@@ -246,7 +261,37 @@ uint32_t PNGParser::ReadData(const uint8_t * data, uint8_t bitDepth, bool isLitt
 
 size_t PNGParser::GetPNGBufferSize(IHDRHeader header)
 {
-	return (header.Width + 1)*header.Height;
+	return (header.Width)*header.Height*header.BitDepth/8*4+header.Height;
+}
+
+uint8_t PNGParser::GetBytesPerPixel(IHDRHeader ihdrHeader)
+{
+	uint8_t retVal = 0;
+	switch (ihdrHeader.ColorType)
+	{
+		//Grey
+	case 0:
+		retVal = 1;
+		break;
+		//RGB
+	case 2:
+		retVal = ihdrHeader.BitDepth/8* 3;
+		break;
+		//Pallete
+	case 3:
+		retVal = ihdrHeader.BitDepth/8;
+		break;
+		//Greyscale with Alpha
+	case 4:
+		retVal = ihdrHeader.BitDepth / 8 * 2;
+		break;
+		//RGBA
+	case 6:
+		retVal = ihdrHeader.BitDepth / 8 * 4;
+		break;
+
+	}
+	return retVal;
 }
 
 uint32_t PNGParser::GetCompressedPNGSize(const uint8_t* dataStart) {
@@ -309,20 +354,17 @@ void PNGParser::RemoveFiltering(uint8_t *data, uint32_t dataLength,uint8_t bytes
 
 void PNGParser::ReverseSubFilter(uint8_t * data, uint32_t bytePos, uint32_t bytesPerPixel, uint32_t bytesPerScanline)
 {
-	uint32_t prevIndex = bytePos - bytesPerPixel;
-	uint32_t currentScanline = bytePos / bytesPerScanline;
-	uint32_t prevScanline = prevIndex / bytesPerScanline;
+	uint8_t subVal = 0;
 
-	if (currentScanline != prevScanline || bytePos % bytesPerScanline == 0)
+	uint32_t curScanline = bytePos / bytesPerScanline;
+	uint32_t prevScanline = (bytePos - bytesPerPixel) / bytesPerScanline;
+
+	if (bytePos > bytesPerPixel && curScanline == prevScanline)
 	{
-		prevIndex -= 1;
+		subVal = data[bytePos - bytesPerPixel];
 	}
 
-	if (bytePos >= bytesPerPixel)
-	{
-		uint8_t newVal = data[bytePos] + data[prevIndex];
-		data[bytePos] = newVal;
-	}
+	data[bytePos] = data[bytePos] + subVal;
 }
 
 void PNGParser::ReverseAverageFilter(uint8_t * data, uint32_t bytePos, uint32_t bytesPerPixel, uint32_t bytesPerScanLine)
@@ -346,34 +388,32 @@ void PNGParser::ReverseAverageFilter(uint8_t * data, uint32_t bytePos, uint32_t 
 
 void PNGParser::ReversePaethFilter(uint8_t * data, uint32_t bytePos, uint32_t bytesPerPixel, uint32_t bytesPerScanLine)
 {
-	uint32_t leftIndex = bytePos - bytesPerPixel;
-	int32_t left = data[leftIndex];
-	if (leftIndex % bytesPerScanLine == 0)
+	uint32_t left = 0;
+	uint32_t top = 0;
+	uint32_t topLeft = 0;
+	uint32_t leftIndex = 0;
+	uint32_t topIndex = 0;
+	uint32_t topLeftIndex = 0;
+
+	bool hasTop = bytePos > bytesPerScanLine;
+	if (hasTop)
 	{
-		left = 0;
+		top = data[bytePos - bytesPerScanLine];
 	}
 
-	uint32_t topIndex = bytePos - bytesPerScanLine;
-	int32_t top;
-	if (topIndex <= 0)
+	if (bytePos > bytesPerPixel)
 	{
-		top = 0;
-	}
-	else
-	{
-		top = data[topIndex];
+		leftIndex = bytePos - bytesPerPixel;
+		if (leftIndex % bytesPerScanLine != 0)
+		{
+			left = data[leftIndex];
+			if (hasTop)
+			{
+				topLeft = data[leftIndex - bytesPerScanLine];
+			}
+		}
 	}
 
-	uint32_t topLeftIndex = leftIndex - bytesPerScanLine;
-	int32_t topLeft;
-	if(topLeftIndex <=0)
-	{
-		topLeft = 0;
-	}
-	else
-	{
-		topLeft = data[topLeftIndex];
-	}
 	data[bytePos] = data[bytePos] + (uint8_t)CalculatePeath(left, top, topLeft);
 }
 
@@ -386,13 +426,13 @@ uint32_t PNGParser::CalculatePeath(int32_t left, int32_t top, int32_t topLeft)
 
 	if (a <= b && a <= c)
 	{
-		return a;
+		return left;
 	}
 	else if (b <= c)
 	{
-		return b;
+		return top;
 	}
-	return c;
+	return topLeft;
 }
 
 void PNGParser::ReverseUpFilter(uint8_t *data, uint32_t bytePos, uint32_t bytesPerPixel, uint32_t bytesPerScanline) {

@@ -1,0 +1,24 @@
+﻿  adler32.c
+c:\users\kiera\documents\palmtree\zlib-1.2.11\zconf.h(247): fatal error C1083: Cannot open include file: 'stddef.h': No such file or directory
+  compress.c
+c:\users\kiera\documents\palmtree\zlib-1.2.11\zconf.h(247): fatal error C1083: Cannot open include file: 'stddef.h': No such file or directory
+  crc32.c
+c:\users\kiera\documents\palmtree\zlib-1.2.11\zconf.h(247): fatal error C1083: Cannot open include file: 'stddef.h': No such file or directory
+  deflate.c
+c:\users\kiera\documents\palmtree\zlib-1.2.11\zconf.h(247): fatal error C1083: Cannot open include file: 'stddef.h': No such file or directory
+  infback.c
+c:\users\kiera\documents\palmtree\zlib-1.2.11\zconf.h(247): fatal error C1083: Cannot open include file: 'stddef.h': No such file or directory
+  inffast.c
+c:\users\kiera\documents\palmtree\zlib-1.2.11\zconf.h(247): fatal error C1083: Cannot open include file: 'stddef.h': No such file or directory
+  inflate.c
+c:\users\kiera\documents\palmtree\zlib-1.2.11\zconf.h(247): fatal error C1083: Cannot open include file: 'stddef.h': No such file or directory
+  inftrees.c
+c:\users\kiera\documents\palmtree\zlib-1.2.11\zconf.h(247): fatal error C1083: Cannot open include file: 'stddef.h': No such file or directory
+  testzlib.c
+..\..\testzlib\testzlib.c(1): fatal error C1083: Cannot open include file: 'stdio.h': No such file or directory
+  trees.c
+c:\users\kiera\documents\palmtree\zlib-1.2.11\zconf.h(247): fatal error C1083: Cannot open include file: 'stddef.h': No such file or directory
+  uncompr.c
+c:\users\kiera\documents\palmtree\zlib-1.2.11\zconf.h(247): fatal error C1083: Cannot open include file: 'stddef.h': No such file or directory
+  zutil.c
+c:\users\kiera\documents\palmtree\zlib-1.2.11\zconf.h(247): fatal error C1083: Cannot open include file: 'stddef.h': No such file or directory

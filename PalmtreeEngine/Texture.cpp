@@ -11,4 +11,5 @@ Texture::Texture(uint32_t Width, uint32_t Height)
 
 Texture::~Texture()
 {
+	std::free(_pixelData);
 }
